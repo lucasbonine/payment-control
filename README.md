@@ -2,6 +2,21 @@
 
 API GraphQL em Node.js/Express para cadastro de usuários, funcionários e processamento de folha em memória.
 
+Este projeto foi criado para praticar automação de testes de APIs, validando fluxos GraphQL como autenticação, criação de registros e respostas esperadas da aplicação.
+
+## Tecnologias
+
+- `Node.js`: ambiente de execução JavaScript usado para rodar a API e os testes.
+- `Express`: framework HTTP usado como base do servidor da aplicação.
+- `Apollo Server`: servidor GraphQL responsável por expor queries e mutations.
+- `GraphQL`: linguagem de consulta usada para definir o contrato da API.
+- `Supertest`: biblioteca usada nos testes para fazer requisições HTTP para a API.
+- `Mocha`: framework de testes usado para organizar e executar os cenários automatizados.
+- `Chai`: biblioteca de asserções usada para validar os retornos esperados.
+- `start-server-and-test`: ferramenta usada para subir a API e executar os testes automaticamente.
+- `JWT`: padrão usado para autenticação das operações protegidas via token.
+- `bcryptjs`: biblioteca usada para comparar a senha informada com o hash salvo em memória.
+
 ## Execução
 
 ```bash
