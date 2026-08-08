@@ -20,7 +20,6 @@ describe('Mutation - Criar Funcionário', () => {
 
     before(async () => {
         token = await realizarLogin()
-        await excluirFuncionariosDeTeste()
     })
 
     after(async () => {
