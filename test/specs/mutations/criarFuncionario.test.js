@@ -1,90 +1,38 @@
-const request = require('supertest')
 const { expect } = require('chai')
+const {
+    criarFuncionario,
+    excluirFuncionariosPorCpf,
+    funcionarioValido,
+    realizarLogin
+} = require('../../helpers/graphqlHelper')
 
 describe('Mutation - Criar Funcionário', () => {
     let token
-    const cpf = '01127022013'
 
-    async function realizarLogin() {
-        const resposta = await request('http://localhost:4000')
-            .post('/graphql')
-            .send({
-                query: `mutation Login($email: String!, $senha: String!) {
-                            login(email: $email, senha: $senha) {
-                                token
-                            }
-                        }`,
-                variables: {
-                    email: 'admin@admin.com',
-                    senha: '123456'
-                }
-            })
+    const cpfsTeste = [
+        '01127022013',
+        '85870999064'
+    ]
 
-        return resposta.body.data.login.token
-    }
-
-    async function excluirFuncionarioPorCpf() {
-        const resposta = await request('http://localhost:4000')
-            .post('/graphql')
-            .set('Authorization', `Bearer ${token}`)
-            .send({
-                query: `query Funcionarios {
-                            funcionarios {
-                                id
-                                cpf
-                            }
-                        }`
-            })
-
-        const funcionario = resposta.body.data.funcionarios.find((item) => item.cpf === cpf)
-
-        if (funcionario) {
-            await request('http://localhost:4000')
-                .post('/graphql')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    query: `mutation ExcluirFuncionario($id: ID!) {
-                                excluirFuncionario(id: $id)
-                            }`,
-                    variables: {
-                        id: funcionario.id
-                    }
-                })
-        }
+    async function excluirFuncionariosDeTeste() {
+        await excluirFuncionariosPorCpf(cpfsTeste, token)
     }
 
     before(async () => {
         token = await realizarLogin()
-        await excluirFuncionarioPorCpf()
+        await excluirFuncionariosDeTeste()
     })
 
     after(async () => {
-        await excluirFuncionarioPorCpf()
+        await excluirFuncionariosDeTeste()
+    })
+
+    beforeEach(async () => {
+        await excluirFuncionariosDeTeste()
     })
 
     it('deve criar funcionário com sucesso quando informados dados válidos', async () => {
-        const resposta = await request('http://localhost:4000')
-            .post('/graphql')
-            .set('Authorization', `Bearer ${token}`)
-            .send({
-                query: `mutation Mutation($input: CriarFuncionarioInput!) {
-                            criarFuncionario(input: $input) {
-                                admissao
-                                id
-                                cpf
-                                nome
-                                salario_base
-                            }
-                        }`,
-                variables: {
-                    input: {
-                        admissao: '2020-01-10',
-                        cpf,
-                        nome: 'ana',
-                        salario_base: 5000
-                    }
-                }
-            })
+        const resposta = await criarFuncionario(funcionarioValido(), token)
 
         expect(resposta.status).to.equal(200)
         expect(resposta.body.data.criarFuncionario).to.include({
@@ -95,5 +43,50 @@ describe('Mutation - Criar Funcionário', () => {
         })
         expect(resposta.body.data.criarFuncionario.id).to.be.a('string')
         expect(resposta.body.data.criarFuncionario.id).to.not.be.empty
+    })
+
+    it('não deve criar funcionário sem autenticação', async () => {
+        const resposta = await criarFuncionario(funcionarioValido())
+
+        expect(resposta.status).to.equal(200)
+        expect(resposta.body.errors[0]).to.have.property('message', 'Autenticação obrigatória.')
+        expect(resposta.body.errors[0].extensions).to.have.property('code', 'UNAUTHENTICATED')
+    })
+
+    it('não deve criar funcionário com salário base negativo', async () => {
+        const resposta = await criarFuncionario(funcionarioValido({
+            salario_base: -1
+        }), token)
+
+        expect(resposta.status).to.equal(200)
+        expect(resposta.body.errors[0]).to.have.property('message', 'Salário base não pode ser negativo.')
+        expect(resposta.body.errors[0].extensions).to.have.property('code', 'BAD_USER_INPUT')
+    })
+
+    it('não deve criar funcionário com desligamento anterior à admissão', async () => {
+        const resposta = await criarFuncionario(funcionarioValido({
+            desligamento: '2020-01-09'
+        }), token)
+
+        expect(resposta.status).to.equal(200)
+        expect(resposta.body.errors[0]).to.have.property('message', 'Desligamento não pode ser anterior à admissão.')
+        expect(resposta.body.errors[0].extensions).to.have.property('code', 'BAD_USER_INPUT')
+    })
+
+    it('não deve criar funcionário com CPF já cadastrado', async () => {
+        await criarFuncionario(funcionarioValido({
+            cpf: cpfsTeste[1]
+        }), token)
+
+        const resposta = await criarFuncionario(funcionarioValido({
+            admissao: '2021-02-15',
+            cpf: cpfsTeste[1],
+            nome: 'maria',
+            salario_base: 4500
+        }), token)
+
+        expect(resposta.status).to.equal(200)
+        expect(resposta.body.errors[0]).to.have.property('message', 'Já existe funcionário com este CPF.')
+        expect(resposta.body.errors[0].extensions).to.have.property('code', 'BAD_USER_INPUT')
     })
 })
