@@ -28,3 +28,34 @@ mutation {
 
 
 Os cadastros são armazenados em memória, nos arrays contidos no arquivo `src/database.js`.
+
+## Testes
+
+A suíte de testes cobre mutations GraphQL, incluindo:
+
+- `login`: sucesso e cenários inválidos de credenciais/campos.
+- `criarFuncionario`: criação de funcionário com sucesso usando autenticação via token.
+
+Para rodar os testes subindo a API automaticamente:
+
+```bash
+npm test
+```
+
+Para rodar os testes sem subir a API, primeiro mantenha a API ativa em outro terminal:
+
+```bash
+npm start
+```
+
+Depois execute:
+
+```bash
+npm run test:mocha
+```
+
+Também é possível rodar apenas o teste de criação de funcionário com a API já ativa:
+
+```bash
+npx mocha test/specs/mutations/criarFuncionario.test.js
+```
